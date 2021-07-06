@@ -19,14 +19,14 @@ myscreen = initScreen('hplp'); mglClearScreen; task{1}.waitForBacktick = 1;
 % set task parameters
 task{1}.segmin = [2 .5 1 inf]; task{1}.segmax = [2 .5 1 inf]; task{1}.getResponse = [0 0 0 1]; %length of segments and response segment
 task{1}.numTrials = 500;
-task{1}.parameter.frequencyComp1 = [10]
-task{1}.parameter.frequencyComp2 = [20]
+task{1}.parameter.frequencyComp1 = [15]
+task{1}.parameter.frequencyComp2 = [30]
 task{1}.parameter.weight = [.2 .35 .5 .65 .8]
 task{1}.random = 1
 
 % create a multidimensional array of comparison images
-for i = 5:50
-task{1}.compare(:,:,i) = generateFrequencyImage(i,i,.5,myscreen);
+for i = 1:50
+task{1}.compare(:,:,i) = generateFrequencyImage((i+20)/2,(i+20)/2,.5,myscreen);
 end
 
 % initialize the task
@@ -57,7 +57,7 @@ function [task myscreen] = startSegmentCallback(task,myscreen)
 if task.thistrial.thisseg == 1
     task.thistrial.complexImage = generateFrequencyImage(task.thistrial.frequencyComp1,task.thistrial.frequencyComp2,task.thistrial.weight,myscreen);
     task.thistrial.estimate = 10;
-    mglClearScreen(0);mglFlush;
+    mglClearScreen(0);myscreen.flushMode = 1;
     %task = jumpSegment(task)
 end
 
@@ -71,13 +71,13 @@ if task.thistrial.thisseg == 2
 elseif task.thistrial.thisseg == 3
     mglClearScreen(0);mglFlush;
 elseif task.thistrial.thisseg == 4
+    myscreen.flushMode = 0;
     task.thistrial.gotResponse = 0
-    task.thistrial.estimate = 10
+    task.thistrial.estimate = 10;task.thistrial.current = 500;
 end
 
 
 mglFixationCross;
-%myscreen.flushMode = 1;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -88,9 +88,11 @@ if task.thistrial.thisseg == 4
     
     tex = mglCreateTexture(task.compare(:,:,task.thistrial.estimate)*255);
     mglBltTexture(tex,[0 0]);
-    mglFlush;
     
-    [task estimateDone] = setEstimate(myscreen,task);
+    if ~(task.thistrial.estimate == task.thistrial.current);mglFlush;end; %only update if buffer is different
+    task.thistrial.current = task.thistrial.estimate;
+    
+    [task estimateDone] = setEstimate(myscreen,task); %set new comparison for next flush
     
     if estimateDone
         task.thistrial.gotResponse = 1;
@@ -110,7 +112,7 @@ function [task estimateDone] = setEstimate(myscreen,task)
 scrollEvents = mglListener('getAllScrollEvents');
 if ~isempty(scrollEvents)
   % get the sum of the vertical and horizontal scrolls
-  verticalScroll = -sum(scrollEvents.scrollVertical);
+  verticalScroll = sum(scrollEvents.scrollVertical);
   horizontalScroll = sum(scrollEvents.scrollHorizontal);
   % set estimate
   task.thistrial.estimate = task.thistrial.estimate+verticalScroll;;
